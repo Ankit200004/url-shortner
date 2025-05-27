@@ -7,9 +7,11 @@ import connectToDB from "./src/config/mongo.db.js"
 import urlmaking from "./src/routes/ShortUrl.route.js"
 import { redirectFromShortUrl } from "./src/controller/shortUrl.controller.js";
 import { errorHandler } from "./src/utils/errorHandler.js";
+import cors from "cors"
 
 app.use(express.json());
 app.use(express.urlencoded({extented: true}))
+app.use(cors())
 
 app.use("/api/create",urlmaking)
 

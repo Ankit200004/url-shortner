@@ -6,7 +6,7 @@ export const createShortUrl = wrapAsync(async (req,res) =>{
     
         const { url } = req.body;
         const shortUrl = await createShortUrlWithoutUser(url);
-        res.send(process.env.AAP_URL+shortUrl);
+        res.send(process.env.APP_URL+shortUrl);
     
 
 })
