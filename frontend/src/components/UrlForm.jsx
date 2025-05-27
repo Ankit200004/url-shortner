@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
+import { createShortUrl } from "../apis/ShortUrl.api";
 
 const UrlForm = () => {
   const [value, setValue] = useState("");
@@ -18,9 +20,7 @@ const UrlForm = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:3000/api/create", {
-        url: value,
-      });
+      const res = await createShortUrl(value);
 
       if (typeof res.data === "string") {
         setShortUrl(res.data);
