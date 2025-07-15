@@ -1,103 +1,114 @@
 import React, { useState } from "react";
-import axios from "axios";
-import { useQueryClient } from "@tanstack/react-query";
+import { useSelector } from "react-redux";
+import { queryClient } from "../main";
 import { createShortUrl } from "../apis/ShortUrl.api";
 
 const UrlForm = () => {
-  const [value, setValue] = useState("");
-  const [shortUrl, setShortUrl] = useState("");
+  const [url, setUrl] = useState("https://www.google.com");
+  const [shortUrl, setShortUrl] = useState();
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
+  const [customSlug, setCustomSlug] = useState("");
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
-  const submitHandler = async () => {
-    setCopied(false);
-    setError("");
-    setShortUrl("");
-
-    if (!value.trim()) {
-      setError("Please enter a valid URL");
-      return;
-    }
-
+  const handleSubmit = async () => {
     try {
-      const res = await createShortUrl(value);
-
-      if (typeof res.data === "string") {
-        setShortUrl(res.data);
-      } else if (res.data.shortUrl) {
-        setShortUrl(res.data.shortUrl);
-      } else {
-        setError("Unexpected response from server");
-        console.log("Response:", res.data);
-      }
+      const shortUrl = await createShortUrl(url, customSlug);
+      setShortUrl(shortUrl);
+      queryClient.invalidateQueries({ queryKey: ["userUrls"] });
+      setError(null);
     } catch (err) {
-      setError(err?.response?.data?.message || "Error connecting to server");
+      setError(err.message);
     }
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shortUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+    // Reset the copied state after 2 seconds
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
   return (
-    <div className="max-w-lg mx-auto mt-10 bg-gradient-to-br from-white via-slate-50 to-blue-50 p-8 rounded-3xl shadow-xl border border-blue-100 space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800 text-center">
-        🔗 URL Shortener
-      </h1>
-
+    <div className="space-y-6 p-6 bg-white/90 backdrop-blur-md shadow-2xl rounded-3xl max-w-xl mx-auto">
+      {/* URL Input */}
       <div>
         <label
           htmlFor="url"
-          className="block text-sm font-medium text-slate-700 mb-2"
+          className="block text-sm font-medium text-gray-800 mb-1"
         >
-          Paste your long URL
+          Enter your URL
         </label>
         <input
           type="url"
           id="url"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          value={url}
+          onInput={(event) => setUrl(event.target.value)}
           placeholder="https://example.com"
           required
-          className="w-full px-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm transition"
+          className="w-full px-4 py-3 border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white placeholder-gray-400 transition"
         />
       </div>
 
+      {/* Custom Slug (Authenticated Users) */}
+      {isAuthenticated && (
+        <div>
+          <label
+            htmlFor="customSlug"
+            className="block text-sm font-medium text-gray-800 mb-1"
+          >
+            Custom URL (optional)
+          </label>
+          <input
+            type="text"
+            id="customSlug"
+            value={customSlug}
+            onChange={(event) => setCustomSlug(event.target.value)}
+            placeholder="your-custom-alias"
+            className="w-full px-4 py-3 border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white placeholder-gray-400 transition"
+          />
+        </div>
+      )}
+
+      {/* Submit Button */}
       <button
-        type="button"
-        onClick={submitHandler}
-        className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+        onClick={handleSubmit}
+        type="submit"
+        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
       >
-        ✂️ Shorten URL
+        Shorten URL
       </button>
 
+      {/* Error Message */}
       {error && (
-        <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm shadow-sm">
+        <div className="p-3 bg-red-100 text-red-700 rounded-md text-sm font-medium">
           {error}
         </div>
       )}
 
+      {/* Shortened URL Display */}
       {shortUrl && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-slate-700">
-            🎉 Your shortened URL:
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold text-emerald-700 mb-2">
+            Your shortened URL:
           </h2>
-          <div className="flex items-center rounded-lg overflow-hidden border border-slate-300 shadow-sm">
+          <div className="flex items-center overflow-hidden rounded-xl border border-emerald-300 bg-gray-50">
             <input
               type="text"
               readOnly
               value={shortUrl}
-              className="flex-1 p-2 text-sm bg-slate-50 text-slate-700"
+              className="flex-1 px-4 py-2 bg-transparent text-sm outline-none"
             />
             <button
               onClick={handleCopy}
-              className={`px-4 py-2 text-sm font-medium ${
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
                 copied
-                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "bg-slate-200 hover:bg-slate-300 text-slate-800"
-              } transition`}
+                  ? "bg-green-500 text-white hover:bg-green-600"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
             >
               {copied ? "Copied!" : "Copy"}
             </button>
